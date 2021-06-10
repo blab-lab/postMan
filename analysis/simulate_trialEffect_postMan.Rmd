@@ -1,0 +1,130 @@
+---
+title: "simulation_trialEffect_postMan"
+author: "Lana Hantzsch"
+date: "4/22/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library (dplyr)
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+library(effectsize)
+
+dataTable <- read.csv("C:/Users/Lana/Documents/Waisman_Center/SMNG/Experiments/postMan/byTrial_4_23_21.csv")
+
+#set exps
+dataTable$exp <- ifelse(dataTable$group == 'normal', 'normalfb', dataTable$exp)
+#Make shiftMag all positive?
+dataTable$shiftMag <- abs(dataTable$shiftMag)
+#rescale shiftMag
+shiftMean <- mean(dataTable$shiftMag)
+dataTable$shiftMag <- dataTable$shiftMag / shiftMean
+
+```
+```{r simulate, echo = FALSE}
+#get condition index lists
+upIX <- which(dataTable$cond == "up")
+downIX <- which(dataTable$cond == "down")
+nas <- which(is.na(dataTable$compensation))
+numsim <- 1000
+#create lists for effsize
+compVar <- data.frame("fValue" = replicate(numsim, 0), "pValue" = replicate(numsim, 0), "eta2" = replicate(numsim, 0))
+shiftVar <- data.frame("fValue" = replicate(numsim, 0), "pValue" = replicate(numsim, 0), "eta2" = replicate(numsim, 0))
+compShiftVar <- data.frame("fValue" = replicate(numsim, 0), "pValue" = replicate(numsim, 0), "eta2" = replicate(numsim, 0))
+#get participant list & indices
+participants <- unique(dataTable$participant)
+
+##START sim loop
+for (n in 1:numsim) {
+#make new dist table
+simTable <- dataTable
+for (pp in participants) {
+  #subset participant data
+  ppData <- dataTable %>%
+    filter(participant == pp)
+  exps <- unique(ppData$exp) #make sure we are subsetting 1 exp at a time
+  for (e in exps) {
+    ppIX <- intersect(which(dataTable$participant == pp), which(dataTable$exp == e)) #get table indices for trial values to replace
+    expData <- ppData %>%
+      filter(exp == e)
+    #subset by condition & response
+    compUp <- expData %>%
+      filter(cond == "up") %>%
+      select(compensation)
+    compDown <- expData %>%
+      filter(cond == "down") %>%
+      select(compensation)
+    osUp <- expData %>%
+      filter(cond == "up") %>%
+      select(oneShot)
+    osDown <- expData %>%
+      filter(cond == "down") %>%
+      select(oneShot)
+    #make new table using mean & sd from participant
+    simTable$compensation[intersect(ppIX, upIX)] <- rnorm(length(compUp$compensation), mean = mean(na.omit(compUp$compensation)), sd = sd(na.omit(compUp$compensation)))
+    simTable$compensation[intersect(ppIX, downIX)] <- 
+      rnorm(length(compDown$compensation), mean = mean(na.omit(compDown$compensation)), sd = sd(na.omit(compDown$compensation)))
+    simTable$oneShot[intersect(ppIX, upIX)] <- 
+      rnorm(length(osUp$oneShot), mean = mean(na.omit(osUp$oneShot)), sd = sd(na.omit(osUp$oneShot)))
+    simTable$oneShot[intersect(ppIX, downIX)] <- 
+      rnorm(length(osDown$oneShot), mean = mean(na.omit(osDown$oneShot)), sd = sd(na.omit(osDown$oneShot)))
+  }
+  }
+
+simTable$oneShot <- ifelse(simTable$cond == 'up', -simTable$oneShot,simTable$oneShot)
+simTable$compensation <- ifelse(simTable$cond == 'up', -simTable$compensation, simTable$compensation)
+
+simTable$compensation[nas] <- NaN
+
+##STATS test
+#run model
+simMod <- lmer(oneShot ~ compensation + shiftMag + (1| participant) + compensation:shiftMag, data = simTable) 
+results <- anova(simMod)
+##Store effect size/ F/ p values
+# comp
+effect <- F_to_eta2(results$`F value`[1], 1, results$DenDF[1])
+compVar$eta2[n] <- effect$Eta2_partial
+compVar$fValue[n] <- results$`F value`[1]
+compVar$pValue[n] <- results$`Pr(>F)`[1]
+# shiftMag
+effect <- F_to_eta2(results$`F value`[2], 1, results$DenDF[2])
+shiftVar$eta2[n] <- effect$Eta2_partial
+shiftVar$fValue[n] <- results$`F value`[2]
+shiftVar$pValue[n] <- results$`Pr(>F)`[2]
+# compShift
+effect <- F_to_eta2(results$`F value`[3], 1, results$DenDF[3])
+compShiftVar$eta2[n] <- effect$Eta2_partial
+compShiftVar$fValue[n] <- results$`F value`[3]
+compShiftVar$pValue[n] <- results$`Pr(>F)`[3]
+
+}
+```
+## Effect size distribution
+# Compensation
+```{r comp, echo = FALSE}
+compVar <- compVar %>%
+  mutate(pZscore = (pValue - mean(pValue))/sd(pValue))
+
+```
+# Shift Mag
+```{r shift, echo = FALSE}
+
+subCS <- shiftVar %>%
+  filter(pValue <= 0.05)
+pPercent = length(subCS$pValue)/1000
+```
+# Shift Mag*Compensation
+```{r interact, echo = FALSE}
+hist(compShiftVar$pValue)
+hist(compShiftVar$eta2)
+
+#calculations
+subCS <- compShiftVar %>%
+  filter(pValue <= 0.05)
+pPercent = length(subCS$pValue)/1000
+
+#95% cutoff
+quantile(compShiftVar$eta2, 0.95)
+```

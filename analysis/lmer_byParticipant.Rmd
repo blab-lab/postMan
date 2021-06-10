@@ -1,0 +1,112 @@
+---
+title: "lmer_byParticipant"
+author: "Lana Hantzsch"
+date: "8/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+library(pwr)
+library(effsize)
+library(effectsize)
+
+#read in data
+oneShotTable <- read.csv("C:/Users/Lana/Documents/Waisman_Center/SMNG/Experiments/postMan/oneShot_4_23_21.csv")
+
+compensationTable <- read.csv("C:/Users/Lana/Documents/Waisman_Center/SMNG/Experiments/postMan/compensation_04_23_21.csv")
+outliers <- read.csv("C:/Users/Lana/Documents/Waisman_Center/SMNG/Experiments/postMan/postMan_outliers.csv")
+
+#Merge data by pp
+allData <- merge(oneShotTable, compensationTable, by = c("participant", "cond", "exp", "shiftMag", "group"))
+
+#allData <- rbind(allData, outliers)
+
+#change normal feedback to exp instead of group
+allData$exp <- ifelse(allData$group == 'normal', 'normalfb', allData$exp)
+
+
+#Make shiftMag all positive?
+allData$shiftMag <- abs(allData$shiftMag)
+
+#remove outliers
+allData <- allData %>%
+  filter(participant != 'OA14') %>%
+  filter(participant != 'HOC8') 
+
+#if you want a flipped sign?
+flipData <- allData
+flipData$oneShot <- ifelse(flipData$cond == 'up', flipData$oneShot*-1, flipData$oneShot)
+
+flipData$compensation <- ifelse(allData$cond == 'up', allData$compensation*-1, allData$compensation)
+
+#rescale shiftMag
+shiftMean <- mean(flipData$shiftMag)
+flipData$shiftMag <- flipData$shiftMag / shiftMean
+
+allData$shiftMag <- allData$shiftMag / shiftMean
+```
+
+## Linear Mixed Model - OneShot / Compensation by condition (no flipped signs)
+```{r cond, echo = FALSE}
+#oneShot/condition participant model
+OSCond <- lmer(oneShot ~ cond + (1|participant) + (1|exp), data = allData)
+summary(OSCond)
+
+#compensation/condition participant model
+condComp <- lmer(compensation ~ cond + (1|participant) + (1|exp), data = allData)
+summary(condComp)
+```
+## Linear Mixed Model - OneShot / Compensation corr. (flipped signs)
+```{r corrFlip, echo = FALSE}
+#corr model (remove exp)
+lmerCorrFlip <- lmer(oneShot ~ compensation*cond*shiftMag + (1|participant), data = flipData)
+#control=lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+
+#run step to get model
+step(lmerCorrFlip)
+#new model from step
+lmerCorrStep2 <- lmer(oneShot ~ compensation + (1 | participant), data = flipData)
+summary(lmerCorrStep2)
+r.squaredGLMM(lmerCorrStep2)
+
+#effect size
+anova(lmerCorrStep2)
+F_to_eta2(6.024, 1, 259.4) #values from ANOVA
+t_to_r(2.24, 259.7)
+
+```
+##t tests
+```{r ttest, echo = FALSE}
+#compensation
+ups <- allData %>%
+  filter(cond == 'up')
+
+downs <- allData %>%
+  filter(cond == 'down') 
+
+zeros <- replicate(131, 0)
+
+cohenData <- rbind(ups, downs)
+
+t.test(ups$oneShot, downs$oneShot, paired = TRUE)
+t.test(ups$compensation, downs$compensation, paired = TRUE)
+t.test(ups$oneShot, zeros)
+t.test(downs$oneShot, zeros)
+
+#calculate Cohen's d for compensation
+CD <- cohen.d(cohenData$compensation, cohenData$cond, paired = TRUE)
+print(CD$estimate)
+#power test for n
+pwr.t.test(d=0.91,power=0.8,sig.level=0.05,type="paired",alternative="two.sided")
+
+#calculate Cohen's d for one-shot
+CD <- cohen.d(cohenData$oneShot, cohenData$cond, data = cohenData, paired = TRUE)
+print(CD$estimate)
+#power test for n
+pwr.t.test(d=0.383,power=0.8,sig.level=0.05,type="paired",alternative="two.sided")
+
+```

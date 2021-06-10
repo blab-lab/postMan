@@ -1,0 +1,95 @@
+---
+title: "lmer_postMan_byTrial"
+author: "Lana Hantzsch"
+date: "9/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+library(effectsize)
+
+#read in data
+trialTable <- read.csv("C:/Users/Lana/Documents/Waisman_Center/SMNG/Experiments/postMan/byTrial_4_23_21.csv")
+
+trialTable$exp <- ifelse(trialTable$group == 'normal', 'normalfb', trialTable$exp)
+
+#remove outliers
+trialTable <- trialTable %>%
+  filter(participant != 'OA14') %>%
+  filter(participant != 'HOC8') 
+
+#Flip sign for up shifts
+flipTable <- trialTable
+flipTable$oneShot <- ifelse(flipTable$cond == 'up', -flipTable$oneShot,flipTable$oneShot)
+flipTable$compensation <- ifelse(flipTable$cond == 'up', -flipTable$compensation, flipTable$compensation)
+
+#rescale shiftMag & make all positive
+trialTable$shiftMag <- abs(trialTable$shiftMag)
+flipTable$shiftMag <- abs(trialTable$shiftMag)
+shiftMean <- mean(trialTable$shiftMag)
+
+flipTable$shiftMag <- flipTable$shiftMag / shiftMean
+trialTable$shiftMag <- trialTable$shiftMag / shiftMean
+
+```
+
+## Compensation / one-Shot with condition (no flipped signs)
+``` {r cond, echo = FALSE}
+#oneShot
+OSTrial <- lmer(oneShot ~ cond + (1|participant) + (1|exp), data = trialTable)
+summary(OSTrial)
+#effect size (-2.14 is estimate)
+OSTrialEffSize <- 2.14/summary(OSTrial)$sigma
+print(OSTrialEffSize)
+
+#compensation
+compTrial <- lmer(compensation ~ cond + (1|participant) + (1|exp), data = trialTable)
+summary(compTrial)
+#effect size
+compTrialEffSize <- 6.93/summary(compTrial)$sigma
+print(compTrialEffSize)
+```
+## Compensation / one-Shot by trial (flipped signs)
+``` {r flip, echo = FALSE}
+#model by trial - flipped signs (rmv exp from random effects), does not converge with random slope of compensation
+trialCorrFlip <- lmer(oneShot ~ compensation*cond*shiftMag + (1|participant), data = flipTable)
+
+step(trialCorrFlip)
+
+testMod <- lmer(oneShot ~ compensation*cond*shiftMag + (1|participant), data = flipTable)
+#new model from step function
+trialCorrMod <- lmer(oneShot ~ compensation + shiftMag + (1| participant) + compensation:shiftMag, data = flipTable) 
+
+#summaries
+summary(trialCorrMod)
+r.squaredGLMM(trialCorrMod)
+
+#effect size
+anova(trialCorrMod)
+#for compensation*shiftMag
+F_to_eta2(9.33, 1, 10317.4) #values pulled from anova result
+#for shiftmag
+F_to_eta2(4.83, 1, 119.6) #values from anova result
+
+```
+## descriptives
+```{r descripive, echo = FALSE}
+upTrial = trialTable %>%
+  filter(cond == "up")
+
+upTmean <- mean(upTrial$oneShot)
+upTsd <- sd(upTrial$oneShot)
+
+downTrial = trialTable %>%
+  filter(cond == "down")
+
+downTmean <- mean(downTrial$oneShot)
+downTsd <- sd(downTrial$oneShot)
+
+trialDist <- flipTable %>%
+  filter(!is.na(compensation))
+```
