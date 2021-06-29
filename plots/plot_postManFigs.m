@@ -57,8 +57,9 @@ xlabel('Trial sequence')
 ylabel({'F1 perturbation' '(mels)'})
 set(gca,'TickLength',[0.005 0.025]);
 lgd = legend;
-lgd.String = {'shift up', 'shift down', 'no shift', 'post up', 'post down'};
- pbaspect([1 0.4 1])
+lgd.String = {'up-shifted', 'down-shifted', 'unshifted', 'post up-shift', 'post down-shift'};
+lgd.NumColumns = 2; 
+pbaspect([1 0.4 1])
 makeFig4Printing
 hold off
 
@@ -71,7 +72,7 @@ load(fullfile(dataPath,'data.mat'),'data');
     params.fmtsColor = [1 0.87 0];
     params.fmtsLineWidth = 1.5;
     params.sfmtsColor = colors.shiftUp;
-    params.sfmtsLineWidth = 1.5;
+    params.sfmtsLineWidth = 2;
     params.ylim =3500;
     params.figpos = [35 500 1000 50];
     
@@ -88,7 +89,7 @@ load(fullfile(dataPath,'data.mat'),'data');
     plotData(1).sfmts(460:532) = 0;
     params.sfmtsColor = colors.shiftDown;
     h1(2) = plot_audapterF1(plotData(1),params);
-    set(gca,'YTick',[1000 2000 3000]);
+    set(gca,'YTick',[1000 2000 3000], 'XLim', [0.6, 1.1], 'XTick', [.6, .7, .8, .9, 1]);
     makeFig4Screen;
   
 end
@@ -102,10 +103,11 @@ if lia
     h2(1)= plot_fmtMatrix_crossSubj('\\wcs-cifs\wc\smng\experiments\postMan', 'fmtMatrix_shiftUpshiftDownnoShift_merged_131s', 'diff1', [], [], {'rfx'});
     title(['Compensation'])
     ylabel('Normalized F1 (mels)')
+    xlabel('Time from vowel onset (ms)')
     p1 = [0.15 0.15 0.25 0.25];
     p2 = [-10 10 10 -10];
     patch(p1, p2, [0.83 0.83 0.83], 'LineStyle', 'none')
-    set(gca, 'Position', fig_position, 'XLim', [0 0.25],'YLim', [-10 10],'children',flipud(get(gca,'children')), 'Layer', 'top')
+    set(gca, 'Position', fig_position, 'XLim', [0 0.25],'XTickLabel', [0 100 200],'YLim', [-10 10],'children',flipud(get(gca,'children')), 'Layer', 'top')
     lgd = legend;
     lgd.String = {'Shift Up', 'Shift Down'};
     makeFig4Printing;
@@ -113,10 +115,11 @@ if lia
     h2(2) = plot_fmtMatrix_crossSubj('\\wcs-cifs\wc\smng\experiments\postMan', 'fmtMatrix_postUppostDownpostNo_merged_131s', 'diff1', [], [], 'rfx', colors);
     title(['One-Shot Adaptation'])
     ylabel('')
+    xlabel('')
     p1 = [0 0 0.1 0.1];
     p2 = [-10 10 10 -10];
     fill(p1, p2, [0.83 0.83 0.83], 'LineStyle', 'none')
-    set(gca, 'Position', fig_position, 'XLim', [0 0.25], 'YLim', [-10 10],'children',flipud(get(gca,'children')), 'Layer', 'top')
+    set(gca, 'Position', fig_position, 'XLim', [0 0.25], 'XTickLabel', [0 100 200], 'YLim', [-10 10], 'YTickLabel', [], 'children',flipud(get(gca,'children')), 'Layer', 'top')
     lgd = legend;
     lgd.String = {'Post Shift Up', 'Post Shift Down'};
     makeFig4Printing; 
@@ -136,7 +139,6 @@ if lia
 %% 1. oneshot raincloud plot
     fig_position = [200 200 600 350]; % position for figure
     h2(4) = figure('Position', fig_position);
-    set(gca, 'XLim', [-35 35], 'YLim', [-0.08 0.08], 'YTick', [], 'YTickLabel', []);
     hold on
     r1 = raincloud_plot(upOS.oneShot, 'box_on', 1, 'color',  colors.shiftUp, 'alpha', 0.5,...
          'box_dodge', 1, 'box_dodge_amount', .3, 'dot_dodge_amount', .3,...
@@ -148,6 +150,7 @@ if lia
          'box_dodge', 1, 'box_dodge_amount', .8, 'dot_dodge_amount', .8,...
          'box_col_match', 0, 'line_width', 1, 'lwr_bnd', 1.2);
     box off
+    set(gca, 'XLim', [-35 35], 'YLim', [-0.08 0.08], 'YTick', [], 'YTickLabel', [], 'XTickLabel', []);
     plot([0 0], [-0.2 0.07], 'Color', [0 0 0], 'LineStyle', '--') 
     lgd = legend([r1{1} r2{1}]);
     lgd.String = {'postUp', 'postDown', '0'};
@@ -164,10 +167,6 @@ if lia
     upComp = compTable(strcmp(compTable.cond, 'up'), :);
     downComp = compTable(strcmp(compTable.cond, 'down'), :);
 
-    %remove outlier
-    %upComp = upComp(~strcmp(upComp.participant, '0'), :);
-    %downComp = downComp(~strcmp(downComp.participant, '0'), :);
-
     %make raincloud plot (horizontal, overlapping)
     fig_position = [200 200 600 350]; % position for figure
     h2(3) = figure('Position', fig_position);
@@ -183,7 +182,7 @@ if lia
          'box_dodge', 1, 'box_dodge_amount', .8, 'dot_dodge_amount', .8,...
          'box_col_match', 0, 'line_width', 1, 'lwr_bnd', 1.2);
     box off
-    plot([0 0], [-0.07 0.085], 'Color', [0 0 0], 'LineStyle', '--') 
+    plot([0 0], [-0.2 0.07], 'Color', [0 0 0], 'LineStyle', '--') 
     lgd = legend([r1{1} r2{1}]);
     lgd.String = {'shiftUp', 'shiftDown', '0'};
     view([90 -90])
@@ -203,9 +202,6 @@ if lia
 %read in full table
 all_averages = readtable('\\wcs-cifs\wc\smng\experiments\postMan\allParticipants_final.csv');
 
-%save outliers for plot
-%outliers = readtable('\\wcs-cifs\wc\smng\experiments\postMan\postMan_outliers.csv');
-
 %flip the signs for 'up' conditions
 for i = 1:height(all_averages)
     if strcmp(all_averages.cond{i}, 'up')
@@ -213,13 +209,6 @@ for i = 1:height(all_averages)
         all_averages.compensation(i) = all_averages.compensation(i) * -1;
     end
 end
-
-%for o = 1:height(outliers)
-%    if strcmp(outliers.cond{o}, 'up')
- %       outliers.oneShot(o) = outliers.oneShot(o) * -1;
- %       outliers.compensation(o) = outliers.compensation(o) * -1;
- %   end
-%end
 
 %plot correlation
 figpos_cm = [0 0  fullPageWidth/2 fullPageWidth*.4];
@@ -243,16 +232,5 @@ axis square
 makeFig4Printing;
 
 end
-%[r, p, ~] = plotcorr(all_averages.compensation, all_averages.oneShot);
-%% plot outliers
-%s00 in fmtAlt (compensation)
- %plot_fmtMatrix(dataPath,'fmtMatrix_shiftUpshiftDownnoShift_merged.mat', 'diff1')
 
- 
-%OA14 in reachAndSpeech
- %plot_fmtMatrix(dataPath,'fmtMatrix_postUppostDownpostNo_merged.mat', 'diff1')
-%% ttests
-
-%[~, pUp] = ttest(upOS.oneShot)
-%[~, pDown] = ttest(downOS.oneShot)
 end

@@ -115,7 +115,7 @@ yl = get(gca, 'YLim');
 set(gca, 'YLim', [-yl(2)*lwr_bnd yl(2)]);
 
 % width of boxplot
-wdth = yl(2) * 0.4;
+wdth = yl(2) * 0.5;
 
 % jitter for raindrops
 jit = (rand(size(X)) - 0.5) * wdth;
@@ -139,6 +139,7 @@ h{2} = scatter(X, drops_pos);
 h{2}.SizeData = 10;
 h{2}.MarkerFaceColor = color;
 h{2}.MarkerEdgeColor = 'none';
+h{2}.MarkerFaceAlpha = alpha;
 
 if box_on
     
@@ -160,16 +161,16 @@ if box_on
     else
         box_pos = [Y(1) -yl(2)/2-(wdth * 0.5) Y(2)-Y(1) wdth];
         % mean line
-        h{4} = line([Y(3) Y(3)], [-yl(2)/2-(wdth * 0.5) -yl(2) / 2 + (wdth * 0.5)], 'col', bxcl, 'LineWidth', line_width);
+        h{4} = line([Y(3) Y(3)], [-yl(2)/2-(wdth * 0.5) -yl(2) / 2 + (wdth * 0.5)], 'col', bxcl, 'LineWidth', line_width*1.5);
         
         % whiskers
-        h{5} = line([Y(2) Y(5)], [-yl(2)/2 -yl(2)/2], 'col', bxcl, 'LineWidth', line_width);
-        h{6} = line([Y(1) Y(4)], [-yl(2)/2 -yl(2)/2], 'col', bxcl, 'LineWidth', line_width);
+        h{5} = line([Y(2) Y(5)], [-yl(2)/2 -yl(2)/2], 'col', bxcl, 'LineWidth', line_width*1.5);
+        h{6} = line([Y(1) Y(4)], [-yl(2)/2 -yl(2)/2], 'col', bxcl, 'LineWidth', line_width*1.5);
     end
     % 'box' of 'boxplot'
     h{3} = rectangle('Position', box_pos);
     set(h{3}, 'EdgeColor', bxcl)
-    set(h{3}, 'LineWidth', line_width);
+    set(h{3}, 'LineWidth', line_width*1.5);
     %set(h{3}, 'FaceColor', bxfacecl);
     % could also set 'FaceColor' here, etc
     
