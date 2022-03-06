@@ -1,0 +1,45 @@
+---
+title: "postMan_correlationComparison"
+author: "Lana Hantzsch"
+date: "2/21/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(DescTools)
+library(stats)
+library(stringr)
+
+dataTable <- read.csv("C:/Users/Lana/Documents/Waisman_Center/SMNG/Experiments/postMan/byTrial_4_23_21.csv")
+
+#set exps
+dataTable$exp <- ifelse(dataTable$group == 'normal', 'normalfb', dataTable$exp)
+#Make shiftMag all positive?
+dataTable$shiftMag <- abs(dataTable$shiftMag)
+#rescale shiftMag
+shiftMean <- mean(dataTable$shiftMag)
+dataTable$shiftMag <- dataTable$shiftMag / shiftMean
+```
+# Fischer Transformation (r -> z)
+```{r Fischer, echo = FALSE}
+pps <- unique(dataTable$participant)
+pearsonVals <- data.frame(participant = pps,
+                          pearsonCorr = replicate(length(pps), 0))
+i <- 1
+for (p in pps) {
+  ppData <- dataTable %>%
+    filter(participant == p)
+  pearson <- cor.test(ppData$oneShot, ppData$compensation, method = "pearson")    
+  pearsonVals$pearsonCorr[[i]] <- pearson$estimate[1]
+  i <- i +1
+}
+
+```
+# t-test on correlations
+```{r Fischer, echo = FALSE}
+#fischer transformation
+zVals <- FisherZ(pearsonVals$pearsonCorr)
+#t test against zero
+t.test(zVals, mu = 0)
+```
