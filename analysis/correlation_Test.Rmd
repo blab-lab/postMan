@@ -11,27 +11,56 @@ library(DescTools)
 library(stats)
 library(stringr)
 
+
 dataTable <- read.csv("C:/Users/Lana/Documents/Waisman_Center/SMNG/Experiments/postMan/byTrial_4_23_21.csv")
 
 #set exps
 dataTable$exp <- ifelse(dataTable$group == 'normal', 'normalfb', dataTable$exp)
+
+#Flip sign for up shifts
+flipTable <- dataTable
+flipTable$oneShot <- ifelse(flipTable$cond == 'up', -flipTable$oneShot,flipTable$oneShot)
+flipTable$compensation <- ifelse(flipTable$cond == 'up', -flipTable$compensation, flipTable$compensation)
+
 #Make shiftMag all positive?
 dataTable$shiftMag <- abs(dataTable$shiftMag)
+flipTable$shiftMag <- abs(flipTable$shiftMag)
 #rescale shiftMag
 shiftMean <- mean(dataTable$shiftMag)
 dataTable$shiftMag <- dataTable$shiftMag / shiftMean
+flipTable$shiftMag <- flipTable$shiftMag / shiftMean
 ```
 # Fischer Transformation (r -> z)
 ```{r Fischer, echo = FALSE}
-pps <- unique(dataTable$participant)
+pps <- unique(flipTable$participant)
 pearsonVals <- data.frame(participant = pps,
-                          pearsonCorr = replicate(length(pps), 0))
+                          pearsonCorrRaw = replicate(length(pps), 0),
+                          pearsonRRaw = replicate(length(pps), 0),
+                          meanCompRaw = replicate(length(pps), 0),
+                          pearsonCorrFlip = replicate(length(pps), 0),
+                          pearsonRFlip = replicate(length(pps), 0),
+                          meanCompFlip = replicate(length(pps), 0),
+                          meanAdaptFlip = replicate(length(pps), 0),
+                          shiftMag = replicate(length(pps), 0))
 i <- 1
 for (p in pps) {
   ppData <- dataTable %>%
     filter(participant == p)
   pearson <- cor.test(ppData$oneShot, ppData$compensation, method = "pearson")    
-  pearsonVals$pearsonCorr[[i]] <- pearson$estimate[1]
+  pearsonVals$pearsonCorrRaw[[i]] <- pearson$estimate[1]
+  pearsonVals$pearsonPRaw[[i]] <- pearson$p.value[1]
+  pearsonVals$meanCompRaw[[i]] <- mean(ppData$compensation, na.rm=TRUE)
+  
+  ppData <- flipTable %>%
+    filter(participant == p)
+  pearson <- cor.test(ppData$oneShot, ppData$compensation, method = "pearson")    
+  pearsonVals$pearsonCorrFlip[[i]] <- pearson$estimate[1]
+  pearsonVals$pearsonPFlip[[i]] <- pearson$p.value[1]
+  pearsonVals$meanCompFlip[[i]] <- mean(ppData$compensation, na.rm=TRUE)
+  pearsonVals$meanAdaptFlip[[i]] <- mean(ppData$oneShot, na.rm=TRUE)
+  
+  pearsonVals$shiftMag[[i]] <- mean(ppData$shiftMag, na.rm=TRUE)
+  
   i <- i +1
 }
 
@@ -39,7 +68,15 @@ for (p in pps) {
 # t-test on correlations
 ```{r Fischer, echo = FALSE}
 #fischer transformation
-zVals <- FisherZ(pearsonVals$pearsonCorr)
+zVals <- FisherZ(pearsonVals$pearsonCorrFlip)
 #t test against zero
 t.test(zVals, mu = 0)
+
+zeros <- replicate(92, 0)
+cohen.d(zVals, zeros, paired = TRUE)
+
+meanR <- FisherZInv(mean(zVals))
+
+#correlation of r values with shift magnitude.
+zVsOneShot<- cor.test(zVals, pearsonVals$meanAdaptFlip, method = "pearson") 
 ```
