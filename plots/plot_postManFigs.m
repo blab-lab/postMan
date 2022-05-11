@@ -1,5 +1,8 @@
 function [h] = plot_postManFigs(figs2plot)
 
+acoustPath = get_acoustLoadPath('postMan');
+exptPath = fileparts(acoustPath);
+
 colors.shiftUp = [0.2 0.6 0.8]; % blue
 colors.shiftDown = [.8 0 0]; % red
 colors.postUp = [0.2 0.6 0.8]; % blue
@@ -43,7 +46,7 @@ if lia
         end
    end      
      
-markerSize = 5;
+markerSize = 6;
 stem(shifts.up, F1shiftMag(shifts.up), 'MarkerEdgeColor',colors.shiftUp,'MarkerSize',markerSize)
 hold on
 stem(shifts.down, F1shiftMag(shifts.down), 'MarkerEdgeColor',colors.shiftDown,'MarkerSize',markerSize)
@@ -51,13 +54,13 @@ stem(shifts.no, F1shiftMag(shifts.no), 'MarkerEdgeColor',colors.noShift,'MarkerF
 stem(shifts.postUp, F1shiftMag(shifts.postUp), 'MarkerEdgeColor', colors.shiftUp, 'MarkerFaceColor',colors.shiftUp,'Color',colors.shiftUp, 'MarkerSize', markerSize)
 stem(shifts.postDown, F1shiftMag(shifts.postDown), 'MarkerEdgeColor', colors.shiftDown, 'MarkerFaceColor',colors.shiftDown,'Color',colors.shiftDown,'MarkerSize', markerSize)
 ylim([-150 150]);
-xlim([0 40]);
+xlim([0 30]);
 set(gca,'YTick',-125:125:125)
 xlabel('Trial sequence')
 ylabel({'F1 perturbation' '(mels)'})
 set(gca,'TickLength',[0.005 0.025]);
 lgd = legend;
-lgd.String = {'up-shifted', 'down-shifted', 'unshifted', 'post up-shift', 'post down-shift'};
+lgd.String = {'up-shifted', 'down-shifted', 'unshifted', 'post-up', 'post-down'};
 lgd.NumColumns = 2; 
 pbaspect([1 0.4 1])
 makeFig4Printing
@@ -100,25 +103,25 @@ if lia
 %% Figure 2A
 %% 1. plot cross sub compensation
     fig_position = [100 100 500 500]; % position for figure
-    h2(1)= plot_fmtMatrix_crossSubj('\\wcs-cifs\wc\smng\experiments\postMan', 'fmtMatrix_shiftUpshiftDownnoShift_merged_131s', 'diff1', [], [], {'rfx'});
+    h2(1)= plot_fmtMatrix_crossSubj(exptPath, 'fmtMatrix_shiftUpshiftDownnoShift_merged_131s', 'diff1', [], [], {'rfx'});
     title(['Compensation'])
     ylabel('Normalized F1 (mels)')
     xlabel('Time from vowel onset (ms)')
     p1 = [0.15 0.15 0.25 0.25];
     p2 = [-10 10 10 -10];
-    patch(p1, p2, [0.83 0.83 0.83], 'LineStyle', 'none')
+    patch(p1, p2, [0.83 0.83 0.83], 'LineStyle', 'none', 'FaceColor', [0.9 0.9 0.9])
     set(gca, 'Position', fig_position, 'XLim', [0 0.25],'XTickLabel', [0 100 200],'YLim', [-10 10],'children',flipud(get(gca,'children')), 'Layer', 'top')
     lgd = legend;
     lgd.String = {'Shift Up', 'Shift Down'};
     makeFig4Printing;
 %% 2. Plot cross Subject oneShot
-    h2(2) = plot_fmtMatrix_crossSubj('\\wcs-cifs\wc\smng\experiments\postMan', 'fmtMatrix_postUppostDownpostNo_merged_131s', 'diff1', [], [], 'rfx', colors);
+    h2(2) = plot_fmtMatrix_crossSubj(exptPath, 'fmtMatrix_postUppostDownpostNo_merged_131s', 'diff1', [], [], 'rfx', colors);
     title(['One-Shot Adaptation'])
     ylabel('')
     xlabel('')
     p1 = [0 0 0.1 0.1];
     p2 = [-10 10 10 -10];
-    fill(p1, p2, [0.83 0.83 0.83], 'LineStyle', 'none')
+    fill(p1, p2, [0.83 0.83 0.83], 'LineStyle', 'none', 'FaceColor', [0.9 0.9 0.9])
     set(gca, 'Position', fig_position, 'XLim', [0 0.25], 'XTickLabel', [0 100 200], 'YLim', [-10 10], 'YTickLabel', [], 'children',flipud(get(gca,'children')), 'Layer', 'top')
     lgd = legend;
     lgd.String = {'Post Shift Up', 'Post Shift Down'};
@@ -126,8 +129,8 @@ if lia
     
 %% Figure 2b. One-Shot/Compensation distributions
     %read in data tables
-    oneshotTable = readtable('\\wcs-cifs\wc\smng\experiments\postMan\oneShot_postMan_final.csv');%('\\wcs-cifs\wc\smng\experiments\postMan\oneShot_fulltable_postMan.csv');
-    compTable = readtable('\\wcs-cifs\wc\smng\experiments\postMan\compensation_postMan_final.csv');%('\\wcs-cifs\wc\smng\experiments\postMan\compensation_fulltable_postMan.csv');
+    oneshotTable = readtable(fullfile(exptPath,'oneShot_postMan_final.csv'));
+    compTable = readtable(fullfile(exptPath,'compensation_postMan_final.csv'));
 
     %remove outlier?
     oneshotTable = oneshotTable(~strcmp(oneshotTable.participant, 'HOC8'), :);
@@ -137,7 +140,7 @@ if lia
     downOS = oneshotTable(strcmp(oneshotTable.cond, 'down'), :);
 
 %% 1. oneshot raincloud plot
-    fig_position = [200 200 600 350]; % position for figure
+    %fig_position = [200 200 600 350]; % position for figure
     h2(4) = figure('Position', fig_position);
     hold on
     r1 = raincloud_plot(upOS.oneShot, 'box_on', 1, 'color',  colors.shiftUp, 'alpha', 0.5,...
@@ -155,8 +158,8 @@ if lia
     lgd = legend([r1{1} r2{1}]);
     lgd.String = {'postUp', 'postDown', '0'};
     view([90 -90])
-    pbaspect([1 0.3 1])
-    makeFig4Printing;
+    pbaspect([1 0.4 1])
+    makeFig4Screen;
     hold off
 
 %% 2. rain cloud plot for compensation
@@ -168,7 +171,7 @@ if lia
     downComp = compTable(strcmp(compTable.cond, 'down'), :);
 
     %make raincloud plot (horizontal, overlapping)
-    fig_position = [200 200 600 350]; % position for figure
+    %fig_position = [200 200 600 350]; % position for figure
     h2(3) = figure('Position', fig_position);
     set(gca, 'XLim', [-35 35], 'YLim', [-0.035 0.08], 'YTick', [], 'YTickLabel', []);
     hold on
@@ -186,21 +189,23 @@ if lia
     lgd = legend([r1{1} r2{1}]);
     lgd.String = {'shiftUp', 'shiftDown', '0'};
     view([90 -90])
-    pbaspect([1 0.3 1])
-    makeFig4Printing;
+    pbaspect([1 0.4 1])
+    makeFig4Screen;
     hold off
 
 %% BOTH
    figpos_cm = [0 0  fullPageWidth fullPageWidth*.4];
    h(locb) = figure('Units','centimeters','Position',figpos_cm);
-   copy_fig2subplot(h2, h(locb), 1, 4, [], 1)
+   copy_fig2subplot(h2, h(locb), 1, 5, {1 2 4 5}, 1)
+   makeFig4Screen;
 end
 %% Figure 3. By-trial correlations
 [lia,locb] = ismember(3,figs2plot);
 
 if lia
 %read in full table
-all_averages = readtable('\\wcs-cifs\wc\smng\experiments\postMan\allParticipants_final.csv');
+all_averages = readtable(fullfile(exptPath,'allParticipants_final.csv'));
+all_byTrial = readtable(fullfile(exptPath,'byTrial_postman_final.csv'));
 
 %flip the signs for 'up' conditions
 for i = 1:height(all_averages)
@@ -210,27 +215,81 @@ for i = 1:height(all_averages)
     end
 end
 
+for i = 1:height(all_byTrial)
+    if strcmp(all_byTrial.cond{i}, 'up')
+        all_byTrial.oneShot(i) = all_byTrial.oneShot(i) * -1;
+        all_byTrial.compensation(i) = all_byTrial.compensation(i) * -1;
+    end
+end
+%flip signs on shift mag 
+for i = 1:height(all_byTrial)
+    if strcmp(all_byTrial.cond{i}, 'down')
+        all_byTrial.shiftMag(i) = all_byTrial.shiftMag(i) * -1;
+    end
+end
+%% 3A
 %plot correlation
 figpos_cm = [0 0  fullPageWidth/2 fullPageWidth*.4];
-h(locb) = figure('Units','centimeters','Position',figpos_cm);
+h3(1) = figure('Units','centimeters','Position',figpos_cm);
 scatter(all_averages.compensation, all_averages.oneShot, 10, all_averages.shiftMag, 'filled', 'MarkerEdgeColor', 'none')
 hold on
 %scatter(outliers.compensation, outliers.oneShot, 'x', 'MarkerEdgeColor', [0.6 0.6 0.6], 'MarkerFaceColor', [0.6 0.6 0.6])
-xlabel('Compensation Response')
-ylabel('One-Shot Adaptation Response')
-cb = colorbar('YTick', [50:25:160]);
-cb.Label.String = 'F1 Shift Magnitude (mels)'
-y = yline(0,'k--')
-y.Color = [0.5 0.5 0.5]
-x = xline(0, 'k--')
-x.Color = [0.5 0.5 0.5]
+xlabel('Compensation (mels)')
+ylabel('One-Shot Adaptation (mels)')
+title(['Participant Averages']);
+cb = colorbar('YTick', [50:25:160], 'FontSize', 12);
+cb.Label.String = 'F1 Shift Magnitude (mels)';
+y = yline(0,'k--');
+y.Color = [0.5 0.5 0.5];
+x = xline(0, 'k--');
+x.Color = [0.5 0.5 0.5];
+axis square
+axis equal
 set(gca, 'XLim', [-40 40], 'YLim', [-40 40], 'xtick', -40:20:40, 'ytick', -40:20:40);
-hline = refline(0.14, 0.93)
+hline = refline(0.14, 0.93);
 hline.Color = [0.2 0.2 0.2];
 %pbaspect([1 1.5 1])
-axis square
 makeFig4Printing;
 
+%% 3B
+%plot correlation
+figpos_cm = [0 0  fullPageWidth/2 fullPageWidth*.4];
+h3(2) = figure('Units','centimeters','Position',figpos_cm);
+scatter(all_byTrial.compensation, all_byTrial.oneShot, 10, all_byTrial.shiftMag, 'filled', 'MarkerEdgeColor', 'none')
+hold on
+xlabel('Compensation (mels)')
+ylabel('One-Shot Adaptation (mels)')
+title(['Trial Averages']);
+cb = colorbar('YTick', [50:25:160], 'FontSize', 12);
+cb.Label.String = 'F1 Shift Magnitude (mels)';
+y = yline(0,'k--');
+y.Color = [0.5 0.5 0.5];
+x = xline(0, 'k--');
+x.Color = [0.5 0.5 0.5];
+axis square
+axis equal
+set(gca, 'XLim', [-400 400], 'YLim', [-400 400], 'xtick', -400:200:400, 'ytick', -400:200:400);
+%hline = refline(0.14, 0.93)
+%hline.Color = [0.2 0.2 0.2];
+%pbaspect([1 1.5 1])
+makeFig4Printing;
+%% Subplots
+   figpos_cm = [0 0  fullPageWidth fullPageWidth*.4];
+   h(locb) = figure();
+   copy_fig2subplot(h3, h(locb), 1, 2, [], 1)
+   cb = colorbar('YTick', [50:25:160], 'FontSize', 12);
+    cb.Label.String = 'F1 Shift Magnitude (mels)';
 end
+%[r, p, ~] = plotcorr(all_averages.compensation, all_averages.oneShot);
+%% plot outliers
+%s00 in fmtAlt (compensation)
+ %plot_fmtMatrix(dataPath,'fmtMatrix_shiftUpshiftDownnoShift_merged.mat', 'diff1')
 
+ 
+%OA14 in reachAndSpeech
+ %plot_fmtMatrix(dataPath,'fmtMatrix_postUppostDownpostNo_merged.mat', 'diff1')
+%% ttests
+
+%[~, pUp] = ttest(upOS.oneShot)
+%[~, pDown] = ttest(downOS.oneShot)
 end
