@@ -93,11 +93,16 @@ zeros <- replicate(131, 0)
 cohenData <- rbind(ups, downs)
 
 t.test(ups$oneShot, downs$oneShot, paired = TRUE)
-t.test(ups$compensation, downs$compensation, paired = TRUE)
 t.test(ups$oneShot, zeros)
 cohen.d(ups$oneShot, zeros, paired = TRUE)
 t.test(downs$oneShot, zeros)
 cohen.d(downs$oneShot, zeros, paired = TRUE)
+
+t.test(ups$compensation, downs$compensation, paired = TRUE)
+t.test(ups$compensation, zeros)
+cohen.d(ups$compensation, zeros, paired = TRUE)
+t.test(downs$compensation, zeros)
+cohen.d(downs$compensation, zeros, paired = TRUE)
 
 #calculate Cohen's d for compensation
 CD <- cohen.d(cohenData$compensation, cohenData$cond, paired = TRUE)
